@@ -16,6 +16,7 @@ class DirtyFieldsMixin(object):
     # This mode has been introduced to handle some situations like this one:
     # https://github.com/romgar/django-dirtyfields/issues/73
     ENABLE_M2M_CHECK = False
+    TRACK_FIELDS = None
 
     def __init__(self, *args, **kwargs):
         super(DirtyFieldsMixin, self).__init__(*args, **kwargs)
@@ -36,16 +37,20 @@ class DirtyFieldsMixin(object):
 
     def _as_dict(self, check_relationship, include_primary_key=True):
         all_field = {}
+        deferred = self.get_deferred_fields()
 
         for field in self._meta.fields:
             if field.primary_key and not include_primary_key:
+                continue
+
+            if self.TRACK_FIELDS is not None and field.name not in self.TRACK_FIELDS:
                 continue
 
             if remote_field(field):
                 if not check_relationship:
                     continue
 
-            if field.get_attname() in self.get_deferred_fields():
+            if field.get_attname() in deferred:
                 continue
 
             field_value = getattr(self, field.attname)
